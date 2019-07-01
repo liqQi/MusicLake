@@ -1,6 +1,5 @@
 package com.cyl.musiclake.ui.music.search
 
-import android.app.PendingIntent.getActivity
 import android.preference.PreferenceManager
 import android.support.v7.widget.LinearLayoutManager
 import android.text.Editable
@@ -250,19 +249,21 @@ class SearchActivity : BaseActivity<SearchPresenter>(), SearchContract.View {
 
         val prefs = PreferenceManager.getDefaultSharedPreferences(this)
         val options = prefs.getStringSet("key_search_filter", mutableSetOf())
+        val cache = mutableSetOf<String>()
+        options?.forEach { t->cache.add(t) }
         val searchFilters = resources.getStringArray(R.array.pref_search_filter_select)
 
         for (i in 0 until searchFilters.size) {
             if (searchFilters[i] == item.title) {
-                if (item.isChecked) options.add((i + 1).toString())
-                else options.remove((i + 1).toString())
+                if (item.isChecked) cache.add((i + 1).toString())
+                else cache.remove((i + 1).toString())
             }
         }
-        options.forEach {
+        cache.forEach {
             LogUtil.d("保存过滤设置 ${searchFilters[it.toInt() - 1]}");
         }
         //保存
-        prefs.edit().putStringSet("key_search_filter", options).apply()
+        prefs.edit().putStringSet("key_search_filter", cache).apply()
         showFilterResult()
     }
 
@@ -320,18 +321,17 @@ class SearchActivity : BaseActivity<SearchPresenter>(), SearchContract.View {
      * 显示搜索记录
      */
     override fun showSearchResult(list: MutableList<Music>) {
-        if (list.size != 0) {
+        if (list.size == mCurrentCounter) {
             mOffset++
         } else {
-            mAdapter.loadMoreComplete()
             mAdapter.setEnableLoadMore(false)
         }
+        mAdapter.loadMoreComplete()
         searchResults.addAll(list)
         showFilterResult()
         isSearchOnline = false
         mCurrentCounter = mAdapter.data.size
         if (songList.size == 0) {
-            mAdapter.loadMoreComplete()
             mAdapter.setEnableLoadMore(false)
             showEmptyState()
         }

@@ -451,6 +451,15 @@ object MusicApiServiceImpl {
      * 获取本地歌词
      */
     fun getLocalLyricInfo(music: Music): Observable<String> {
+        var uri = music.uri
+        val lastIndexOf = uri?.lastIndexOf(".")
+        lastIndexOf?.plus(1)?.let {
+            uri = uri?.substring(0, it)
+            uri += "lrc"
+            if(FileUtils.exists(uri)){
+                return MusicApi.getLocalLyricInfo(uri)
+            }
+        }
         val mLyricPath = FileUtils.getLrcDir() + music.title + "-" + music.artist + ".lrc"
         //网络歌词
         return MusicApi.getLocalLyricInfo(mLyricPath)
