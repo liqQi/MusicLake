@@ -7,11 +7,13 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.cyl.musiclake.MusicApp;
 import com.cyl.musiclake.R;
+import com.cyl.musiclake.ui.download.DownloadLoader;
 import com.cyl.musiclake.ui.download.TasksManager;
 import com.cyl.musiclake.ui.download.TasksManagerModel;
 import com.cyl.musiclake.utils.LogUtil;
@@ -21,6 +23,7 @@ import com.liulishuo.filedownloader.model.FileDownloadStatus;
 import com.liulishuo.filedownloader.util.FileDownloadUtils;
 
 import java.io.File;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -125,6 +128,18 @@ public class TaskItemAdapter extends RecyclerView.Adapter<TaskItemAdapter.TaskIt
             holder.taskStatusTv.setText(R.string.tasks_manager_demo_status_loading);
             holder.taskActionBtn.setEnabled(false);
         }
+
+        holder.ivDelete.setOnClickListener(v->{
+            DownloadLoader.INSTANCE.deleteTask(model.getId());
+            Iterator<TasksManagerModel> iterator = models.iterator();
+            while (iterator.hasNext()){
+                TasksManagerModel next = iterator.next();
+                if(next.getId() == model.getId()){
+                    iterator.remove();
+                }
+            }
+            notifyDataSetChanged();
+        });
     }
 
     @Override
@@ -223,12 +238,14 @@ public class TaskItemAdapter extends RecyclerView.Adapter<TaskItemAdapter.TaskIt
         TextView taskStatusTv;
         ProgressBar taskPb;
         Button taskActionBtn;
+        ImageView ivDelete;
 
         private void assignViews() {
             taskNameTv = (TextView) findViewById(R.id.task_name_tv);
             taskStatusTv = (TextView) findViewById(R.id.task_status_tv);
             taskPb = (ProgressBar) findViewById(R.id.task_pb);
             taskActionBtn = (Button) findViewById(R.id.task_action_btn);
+            ivDelete = (ImageView) findViewById(R.id.delete);
         }
     }
 }

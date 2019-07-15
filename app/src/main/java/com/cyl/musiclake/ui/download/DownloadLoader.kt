@@ -122,4 +122,8 @@ object DownloadLoader {
         }
         NavigationHelper.scanFileAsync(MusicApp.mContext, FileUtils.getMusicCacheDir())
     }
+
+    fun deleteTask(id : Long){
+        LitePal.delete(TasksManagerModel::class.java,id)
+    }
 }
