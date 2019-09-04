@@ -42,18 +42,18 @@
         <Preference
             android:key="key_download_file"
             android:title="@string/pref_title_download" />
+
+        <SwitchPreference
+            android:checked="true"
+            android:defaultValue="false"
+            android:key="key_cache_mode"
+            android:summary="@string/pref_summary_cache_switch"
+            android:title="@string/pref_title_cache_switch" />
+
         <Preference
+            android:enabled="false"
             android:key="key_cache_file"
             android:title="@string/pref_title_cache" />
-    </PreferenceCategory>
-
-    <PreferenceCategory android:title="@string/search_filter_title">
-        <MultiSelectListPreference
-            android:entries="@array/pref_search_filter_select"
-            android:entryValues="@array/pref_search_filter_values"
-            android:key="key_search_filter"
-            android:summary="@string/search_filter_summary"
-            android:title="@string/search_filter_title" />
     </PreferenceCategory>
 
     <PreferenceCategory android:title="@string/pref_header_notifications">

@@ -1,7 +1,7 @@
 package com.cyl.musiclake.ui.music.playqueue
 
 import android.graphics.Color
-import android.support.v7.graphics.Palette
+import androidx.palette.graphics.Palette
 import android.view.View
 import com.chad.library.adapter.base.BaseQuickAdapter
 import com.chad.library.adapter.base.BaseViewHolder
@@ -20,12 +20,13 @@ import com.cyl.musiclake.utils.ConvertUtils
  */
 class QueueAdapter(musicList: List<Music>) : BaseQuickAdapter<Music, BaseViewHolder>(R.layout.item_queue, musicList) {
 
-    private var mSwatch: Palette.Swatch? = null
+    private var mSwatch: androidx.palette.graphics.Palette.Swatch? = null
 
     override fun convert(holder: BaseViewHolder, item: Music) {
         holder.setText(R.id.tv_title, ConvertUtils.getTitle(item.title))
-        holder.setText(R.id.tv_artist, ConvertUtils.getArtistAndAlbum(item.artist, item.album))
-        if (PlayManager.getPlayingId() == item.mid) {
+        holder.setText(R.id.tv_artist, item.artist)
+        //选中正在播放的歌曲
+        if (PlayManager.getPlayingId() == item.mid && PlayManager.position() == holder.adapterPosition) {
             holder.setTextColor(R.id.tv_title, Color.parseColor("#0091EA"))
             holder.setTextColor(R.id.tv_artist, Color.parseColor("#01579B"))
         } else {

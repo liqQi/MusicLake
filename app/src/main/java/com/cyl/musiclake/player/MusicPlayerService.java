@@ -23,30 +23,32 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.os.PowerManager;
-import android.support.annotation.Nullable;
-import android.support.annotation.RequiresApi;
-import android.support.v4.media.app.NotificationCompat;
-import android.support.v4.media.session.MediaButtonReceiver;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 
+import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
+import androidx.core.app.NotificationCompat;
+import androidx.media.session.MediaButtonReceiver;
+
 import com.cyl.musiclake.R;
 import com.cyl.musiclake.api.music.MusicApi;
+import com.cyl.musiclake.api.net.ApiManager;
+import com.cyl.musiclake.api.net.RequestCallBack;
 import com.cyl.musiclake.bean.Music;
-import com.cyl.musiclake.common.Constants;
-import com.cyl.musiclake.common.Extras;
 import com.cyl.musiclake.bean.data.PlayHistoryLoader;
 import com.cyl.musiclake.bean.data.PlayQueueLoader;
+import com.cyl.musiclake.common.Constants;
+import com.cyl.musiclake.common.Extras;
 import com.cyl.musiclake.event.MetaChangedEvent;
 import com.cyl.musiclake.event.PlaylistEvent;
 import com.cyl.musiclake.event.StatusChangedEvent;
-import com.cyl.musiclake.api.net.ApiManager;
-import com.cyl.musiclake.api.net.RequestCallBack;
 import com.cyl.musiclake.player.playback.PlayProgressListener;
 import com.cyl.musiclake.player.playqueue.PlayQueueManager;
 import com.cyl.musiclake.ui.music.playpage.PlayerActivity;
+import com.cyl.musiclake.ui.widget.appwidgets.StandardWidget;
 import com.cyl.musiclake.utils.CoverLoader;
 import com.cyl.musiclake.utils.FileUtils;
 import com.cyl.musiclake.utils.LogUtil;
@@ -54,7 +56,6 @@ import com.cyl.musiclake.utils.NetworkUtils;
 import com.cyl.musiclake.utils.SPUtils;
 import com.cyl.musiclake.utils.SystemUtils;
 import com.cyl.musiclake.utils.ToastUtils;
-import com.cyl.musiclake.ui.widget.appwidgets.StandardWidget;
 
 import org.greenrobot.eventbus.EventBus;
 
@@ -72,7 +73,6 @@ import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 
-import static android.support.v4.app.NotificationCompat.Builder;
 
 /**
  * 作者：yonglong on 2016/8/11 19:16
@@ -172,7 +172,7 @@ public class MusicPlayerService extends Service {
 
 
     private NotificationManager mNotificationManager;
-    private Builder mNotificationBuilder;
+    private NotificationCompat.Builder mNotificationBuilder;
     private Notification mNotification;
     private IMusicServiceStub mBindStub = new IMusicServiceStub(this);
     private boolean isRunningForeground = false;
@@ -180,7 +180,8 @@ public class MusicPlayerService extends Service {
     //暂时失去焦点，会再次回去音频焦点
     private boolean mPausedByTransientLossOfFocus = false;
 
-    public static int totalTime = 0;
+    //播放缓存进度
+    private int percent = 0;
 
     boolean mServiceInUse = false;
     //工作线程和Handler
@@ -269,6 +270,7 @@ public class MusicPlayerService extends Service {
                         break;
                     case TRACK_PLAY_ERROR://mPlayer播放错误
                         LogUtil.e(TAG, "TRACK_PLAY_ERROR " + msg.obj + "---");
+                        ToastUtils.show("歌曲播放地址异常，请切换其他歌曲");
                         playErrorTimes++;
                         if (playErrorTimes < MAX_ERROR_TIMES) {
                             mMainHandler.post(() -> service.next(true));
@@ -280,7 +282,7 @@ public class MusicPlayerService extends Service {
                         service.mWakeLock.release();
                         break;
                     case PREPARE_ASYNC_UPDATE:
-                        int percent = (int) msg.obj;
+                        percent = (int) msg.obj;
                         LogUtil.e(TAG, "PREPARE_ASYNC_UPDATE Loading ... " + percent);
                         notifyChange(PLAY_STATE_LOADING_CHANGED);
                         break;
@@ -498,11 +500,6 @@ public class MusicPlayerService extends Service {
      */
     public void next(Boolean isAuto) {
         synchronized (this) {
-            if (!NetworkUtils.isNetworkAvailable(this)) {
-                ToastUtils.show("网络不可用，请检查网络连接");
-                return;
-            }
-
             mPlayingPos = PlayQueueManager.INSTANCE.getNextPosition(isAuto, mPlayQueue.size(), mPlayingPos);
             LogUtil.e(TAG, "next: " + mPlayingPos);
             stop(false);
@@ -515,10 +512,10 @@ public class MusicPlayerService extends Service {
      */
     public void prev() {
         synchronized (this) {
-            if (!NetworkUtils.isNetworkAvailable(this)) {
-                ToastUtils.show("网络不可用，请检查网络连接");
-                return;
-            }
+//            if (!NetworkUtils.isNetworkAvailable(this)) {
+//                ToastUtils.show("网络不可用，请检查网络连接");
+//                return;
+//            }
 
             mPlayingPos = PlayQueueManager.INSTANCE.getPreviousPosition(mPlayQueue.size(), mPlayingPos);
             LogUtil.e(TAG, "prev: " + mPlayingPos);
@@ -546,22 +543,27 @@ public class MusicPlayerService extends Service {
 
             LogUtil.e(TAG, "playingSongInfo:" + mPlayingMusic.toString());
             if (mPlayingMusic.getUri() == null || !Objects.equals(mPlayingMusic.getType(), Constants.LOCAL) || mPlayingMusic.getUri().equals("") || mPlayingMusic.getUri().equals("null")) {
-                ApiManager.request(MusicApi.INSTANCE.getMusicInfo(mPlayingMusic), new RequestCallBack<Music>() {
-                    @Override
-                    public void success(Music result) {
-                        LogUtil.e(TAG, "-----" + result.toString());
-                        mPlayingMusic = result;
-                        saveHistory();
-                        playErrorTimes = 0;
-                        mPlayer.setDataSource(mPlayingMusic.getUri());
-                    }
 
-                    @Override
-                    public void error(String msg) {
-                        LogUtil.e(TAG, "播放异常-----" + msg);
-                        checkPlayErrorTimes();
-                    }
-                });
+                if (!NetworkUtils.isNetworkAvailable(this)) {
+                    ToastUtils.show("网络不可用，请检查网络连接");
+                } else {
+                    ApiManager.request(MusicApi.INSTANCE.getMusicInfo(mPlayingMusic), new RequestCallBack<Music>() {
+                        @Override
+                        public void success(Music result) {
+                            LogUtil.e(TAG, "-----" + result.toString());
+                            mPlayingMusic = result;
+                            saveHistory();
+                            playErrorTimes = 0;
+                            mPlayer.setDataSource(mPlayingMusic.getUri());
+                        }
+
+                        @Override
+                        public void error(String msg) {
+                            LogUtil.e(TAG, "播放异常-----" + msg);
+                            checkPlayErrorTimes();
+                        }
+                    });
+                }
             }
             saveHistory();
             mHistoryPos.add(mPlayingPos);
@@ -723,7 +725,7 @@ public class MusicPlayerService extends Service {
     }
 
     /**
-     * 【在线音乐】加入播放队列并播放音乐
+     * 【在线音乐，搜索的音乐】加入播放队列并播放音乐
      *
      * @param music
      */
@@ -981,15 +983,16 @@ public class MusicPlayerService extends Service {
             case PLAY_STATE_CHANGED:
                 updateWidget(ACTION_PLAY_PAUSE);
                 mediaSessionManager.updatePlaybackState();
-                EventBus.getDefault().post(new StatusChangedEvent(isPrepared(), isPlaying()));
+                EventBus.getDefault().post(new StatusChangedEvent(isPrepared(), isPlaying(), percent * getDuration()));
                 break;
             case PLAY_QUEUE_CLEAR:
             case PLAY_QUEUE_CHANGE:
                 EventBus.getDefault().post(new PlaylistEvent(Constants.PLAYLIST_QUEUE_ID, null));
                 break;
-//            case PLAY_STATE_LOADING_CHANGED:
-//                EventBus.getDefault().post(new StatusChangedEvent(false, isPlaying()));
-//                break;
+            case PLAY_STATE_LOADING_CHANGED:
+                //播放loading
+                EventBus.getDefault().post(new StatusChangedEvent(isPrepared(), isPlaying(), percent * getDuration()));
+                break;
         }
     }
 
@@ -1113,8 +1116,9 @@ public class MusicPlayerService extends Service {
         if (mNotificationPostTime == 0) {
             mNotificationPostTime = System.currentTimeMillis();
         }
-        mNotificationBuilder = new Builder(this, initChannelId())
+        mNotificationBuilder = new NotificationCompat.Builder(this, initChannelId())
                 .setSmallIcon(R.drawable.ic_music)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setContentIntent(clickIntent)
                 .setContentTitle(getTitle())
                 .setContentText(text)
@@ -1143,8 +1147,8 @@ public class MusicPlayerService extends Service {
         if (SystemUtils.isLollipop()) {
             //线控
             isRunningForeground = true;
-            mNotificationBuilder.setVisibility(Notification.VISIBILITY_PUBLIC);
-            NotificationCompat.MediaStyle style = new NotificationCompat.MediaStyle()
+            mNotificationBuilder.setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
+            androidx.media.app.NotificationCompat.MediaStyle style = new androidx.media.app.NotificationCompat.MediaStyle()
                     .setMediaSession(mediaSessionManager.getMediaSession())
                     .setShowActionsInCompactView(1, 0, 2, 3, 4);
             mNotificationBuilder.setStyle(style);
@@ -1204,6 +1208,7 @@ public class MusicPlayerService extends Service {
 
     /**
      * 显示桌面歌词
+     * 开个定时器定时刷新桌面歌词
      *
      * @param show
      */
@@ -1215,7 +1220,10 @@ public class MusicPlayerService extends Service {
                 lyricTimer.scheduleAtFixedRate(new TimerTask() {
                     @Override
                     public void run() {
-                        mFloatLyricViewManager.updateLyric(getCurrentPosition(), getDuration());
+                        if (isMusicPlaying){
+                            //正在播放时刷新
+                            mFloatLyricViewManager.updateLyric(getCurrentPosition(), getDuration());
+                        }
                     }
                 }, 0, 1);
             }
@@ -1268,6 +1276,7 @@ public class MusicPlayerService extends Service {
             mNotificationBuilder.mActions.get(0).icon = R.drawable.ic_pause;
         else
             mNotificationBuilder.mActions.get(0).icon = R.drawable.ic_play;
+
         mNotification = mNotificationBuilder.build();
         mFloatLyricViewManager.updatePlayStatus(isMusicPlaying);
 
@@ -1363,6 +1372,7 @@ public class MusicPlayerService extends Service {
     private void startFloatLyric() {
         if (SystemUtils.isOpenFloatWindow()) {
             showLyric = !showLyric;
+            SPUtils.putAnyCommit(SPUtils.SP_KEY_FLOAT_LYRIC_LOCK, false);
             showDesktopLyric(showLyric);
         } else {
             SystemUtils.applySystemWindow();

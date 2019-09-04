@@ -4,7 +4,7 @@ import android.animation.Animator
 import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
 import android.graphics.Bitmap
-import android.support.v7.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatActivity
 import android.view.View
 import android.view.animation.AccelerateInterpolator
 import android.view.animation.LinearInterpolator
@@ -65,7 +65,7 @@ class CoverFragment : BaseFragment<BasePresenter<BaseContract.BaseView>>() {
         tv_quality.setOnClickListener {
             QualitySelectDialog.newInstance(PlayManager.getPlayingMusic()).apply {
                 changeSuccessListener = {
-                    tv_quality.text = it
+                    this@CoverFragment.tv_quality.text = it
                 }
                 isDownload = false
             }.show(activity as AppCompatActivity)

@@ -8,6 +8,7 @@ import com.cyl.musiclake.bean.HotSearchBean
 import com.cyl.musiclake.bean.Music
 import com.cyl.musiclake.bean.Playlist
 import com.cyl.musiclake.common.Constants
+import com.cyl.musiclake.utils.LogUtil
 import com.cyl.musiclake.utils.SPUtils
 import io.reactivex.Observable
 import io.reactivex.ObservableOnSubscribe
@@ -255,8 +256,18 @@ object NeteaseApiServiceImpl {
             apiService.loginPhone(username, pwd)
     }
 
+    /**
+     * 获取登录状态
+     */
     fun getLoginStatus(): Observable<LoginInfo> {
         return apiService.getLoginStatus()
+    }
+
+    /**
+     * 注销绑定
+     */
+    fun logout(): Observable<Any> {
+        return apiService.logout()
     }
 
     /**
@@ -417,6 +428,58 @@ object NeteaseApiServiceImpl {
                                 e.onError(Throwable("网络异常"))
                             }
                         } catch (ep: Exception) {
+                            e.onError(ep)
+                        }
+                    })
+                }
+    }
+
+
+    /**
+     *获取网易云排行榜歌单
+     */
+    fun getTopList(): Observable<MutableList<Playlist>> {
+        return apiService.getTopList()
+                .flatMap { it ->
+                    Observable.create(ObservableOnSubscribe<MutableList<Playlist>> { e ->
+                        try {
+                            if (it.code == 200) {
+                                val list = mutableListOf<Playlist>()
+                                LogUtil.d(TAG, "playlist= ${it.list.size}")
+                                it.list.forEach {
+                                    val playlist = Playlist()
+                                    playlist.pid = it.id.toString()
+                                    playlist.name = it.name
+                                    playlist.updateFrequency = it.updateFrequency
+                                    playlist.coverUrl = it.coverImgUrl
+                                    playlist.des = it.description
+                                    playlist.date = it.createTime
+                                    playlist.updateDate = it.updateTime
+                                    playlist.total = it.trackCount
+                                    playlist.playCount = it.playCount
+                                    playlist.type = Constants.PLAYLIST_WY_ID
+                                    if (it.ToplistType != null) {
+                                        LogUtil.d(TAG, "type = ${it.ToplistType} ${it.tracks} ")
+                                        val musicList = mutableListOf<Music>()
+                                        it.tracks?.forEach { track ->
+                                            val music = Music()
+                                            music.title = track.first
+                                            music.artist = track.second
+                                            musicList.add(music)
+                                        }
+                                        playlist.musicList = musicList
+                                    }
+                                    LogUtil.d(TAG, "playlist = $playlist ")
+                                    list.add(playlist)
+                                }
+                                e.onNext(list)
+                                e.onComplete()
+                            } else {
+                                LogUtil.d(TAG, "网络异常= ${it.list.size}")
+                                e.onError(Throwable("网络异常"))
+                            }
+                        } catch (ep: Exception) {
+                            LogUtil.d(TAG, "Exception= ${ep.message}")
                             e.onError(ep)
                         }
                     })

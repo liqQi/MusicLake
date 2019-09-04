@@ -1,5 +1,6 @@
 package com.cyl.musiclake.ui.music.search
 
+import androidx.recyclerview.widget.LinearLayoutManager
 import android.preference.PreferenceManager
 import android.support.v7.widget.LinearLayoutManager
 import android.text.Editable
@@ -11,26 +12,22 @@ import android.view.MenuItem
 import android.view.View
 import android.view.animation.DecelerateInterpolator
 import android.view.inputmethod.EditorInfo
-import com.chad.library.adapter.base.BaseQuickAdapter
 import com.cyl.musiclake.R
 import com.cyl.musiclake.bean.HotSearchBean
 import com.cyl.musiclake.bean.Music
 import com.cyl.musiclake.bean.SearchHistoryBean
 import com.cyl.musiclake.bean.data.db.DaoLitepal
-import com.cyl.musiclake.common.Constants
 import com.cyl.musiclake.common.Extras
-import com.cyl.musiclake.common.NavigationHelper
-import com.cyl.musiclake.player.PlayManager
 import com.cyl.musiclake.ui.base.BaseActivity
-import com.cyl.musiclake.ui.music.dialog.BottomDialogFragment
-import com.cyl.musiclake.ui.music.local.adapter.SongAdapter
+import com.cyl.musiclake.ui.main.PageAdapter
+import com.cyl.musiclake.ui.music.search.fragment.SearchSongsFragment
+import com.cyl.musiclake.ui.music.search.fragment.YoutubeSearchFragment
 import com.cyl.musiclake.utils.AnimationUtils
-import com.cyl.musiclake.utils.LogUtil
 import com.cyl.musiclake.utils.Tools
 import com.google.android.flexbox.FlexDirection
 import com.google.android.flexbox.FlexboxLayoutManager
 import com.google.android.flexbox.JustifyContent
-import kotlinx.android.synthetic.main.acitvity_search.*
+import kotlinx.android.synthetic.main.activity_search.*
 import kotlinx.android.synthetic.main.toolbar_search_layout.*
 import java.util.*
 
@@ -38,6 +35,7 @@ import java.util.*
  * 作者：yonglong on 2016/9/15 12:32
  * 邮箱：643872807@qq.com
  * 版本：2.5
+ * 描述:搜索功能
  */
 class SearchActivity : BaseActivity<SearchPresenter>(), SearchContract.View {
     /**
@@ -249,21 +247,19 @@ class SearchActivity : BaseActivity<SearchPresenter>(), SearchContract.View {
 
         val prefs = PreferenceManager.getDefaultSharedPreferences(this)
         val options = prefs.getStringSet("key_search_filter", mutableSetOf())
-        val cache = mutableSetOf<String>()
-        options?.forEach { t->cache.add(t) }
         val searchFilters = resources.getStringArray(R.array.pref_search_filter_select)
 
         for (i in 0 until searchFilters.size) {
             if (searchFilters[i] == item.title) {
-                if (item.isChecked) cache.add((i + 1).toString())
-                else cache.remove((i + 1).toString())
+                if (item.isChecked) options.add((i + 1).toString())
+                else options.remove((i + 1).toString())
             }
         }
-        cache.forEach {
+        options.forEach {
             LogUtil.d("保存过滤设置 ${searchFilters[it.toInt() - 1]}");
         }
         //保存
-        prefs.edit().putStringSet("key_search_filter", cache).apply()
+        prefs.edit().putStringSet("key_search_filter", options).apply()
         showFilterResult()
     }
 
@@ -321,17 +317,18 @@ class SearchActivity : BaseActivity<SearchPresenter>(), SearchContract.View {
      * 显示搜索记录
      */
     override fun showSearchResult(list: MutableList<Music>) {
-        if (list.size == mCurrentCounter) {
+        if (list.size != 0) {
             mOffset++
         } else {
+            mAdapter.loadMoreComplete()
             mAdapter.setEnableLoadMore(false)
         }
-        mAdapter.loadMoreComplete()
         searchResults.addAll(list)
         showFilterResult()
         isSearchOnline = false
         mCurrentCounter = mAdapter.data.size
         if (songList.size == 0) {
+            mAdapter.loadMoreComplete()
             mAdapter.setEnableLoadMore(false)
             showEmptyState()
         }

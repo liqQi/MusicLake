@@ -23,6 +23,8 @@ class Playlist() : LitePalSupport(), Parcelable {
     var total: Long = 0
     //更新日期
     var updateDate: Long = 0
+    //更新频率
+    var updateFrequency: String? = null
     //创建日期
     var date: Long = 0
     //描述
@@ -33,9 +35,8 @@ class Playlist() : LitePalSupport(), Parcelable {
     var coverUrl: String? = null
     //类型:本地歌单、在线同步歌单、百度音乐电台、网易云歌单、百度排行榜
     var type: String = Constants.PLAYLIST_LOCAL_ID
-
+    //播放次数
     var playCount: Long = 0
-
     //歌曲集合
     var musicList = mutableListOf<Music>()
 

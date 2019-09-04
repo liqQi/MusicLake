@@ -2,8 +2,8 @@ package com.cyl.musiclake.ui.music.my
 
 import android.content.Intent
 import android.os.Bundle
-import android.support.design.widget.TabLayout
-import android.support.v7.widget.LinearLayoutManager
+import com.google.android.material.tabs.TabLayout
+import androidx.recyclerview.widget.LinearLayoutManager
 import android.view.View
 import com.cyl.musiclake.BuildConfig
 import com.cyl.musiclake.MusicApp
@@ -174,6 +174,10 @@ class MyMusicFragment : BaseFragment<MyMusicPresenter>(), MyMusicContract.View {
                 playlistManagerIv.visibility = View.VISIBLE
             }
             Constants.PLAYLIST_WY_ID -> {
+                if (wyPlaylists.size == 0) {
+                    //加载网易云音乐歌单
+                    mPresenter?.loadWyUserPlaylist()
+                }
                 mAdapter?.setNewData(wyPlaylists)
                 playlistAddIv.visibility = View.INVISIBLE
                 playlistManagerIv.visibility = View.INVISIBLE

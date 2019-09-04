@@ -1,14 +1,6 @@
 package com.cyl.musiclake.ui.main;
 
 import android.content.Intent;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.design.internal.NavigationMenuView;
-import android.support.design.widget.NavigationView;
-import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentTransaction;
-import android.support.v4.view.GravityCompat;
-import android.support.v4.widget.DrawerLayout;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -17,7 +9,13 @@ import android.widget.ImageView;
 import android.widget.Switch;
 import android.widget.TextView;
 
-import com.afollestad.materialdialogs.MaterialDialog;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.core.view.GravityCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentTransaction;
+
 import com.cyl.musiclake.MusicApp;
 import com.cyl.musiclake.R;
 import com.cyl.musiclake.bean.Music;
@@ -27,6 +25,7 @@ import com.cyl.musiclake.common.NavigationHelper;
 import com.cyl.musiclake.event.CountDownEvent;
 import com.cyl.musiclake.event.LoginEvent;
 import com.cyl.musiclake.event.MetaChangedEvent;
+import com.cyl.musiclake.player.FloatVideoWindowManager;
 import com.cyl.musiclake.player.PlayManager;
 import com.cyl.musiclake.ui.UIUtilsKt;
 import com.cyl.musiclake.ui.base.BaseActivity;
@@ -47,6 +46,9 @@ import com.cyl.musiclake.utils.LogUtil;
 import com.cyl.musiclake.utils.SPUtils;
 import com.cyl.musiclake.utils.ToastUtils;
 import com.cyl.musiclake.utils.Tools;
+import com.google.android.material.internal.NavigationMenuView;
+import com.google.android.material.navigation.NavigationView;
+import com.tencent.bugly.beta.Beta;
 
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
@@ -104,6 +106,9 @@ public class MainActivity extends BaseActivity implements NavigationView.OnNavig
         disableNavigationViewScrollbars(mNavigationView);
         checkLoginStatus();
         initCountDownView();
+
+        //检查更新
+        Beta.checkUpgrade(false, false);
     }
 
 
@@ -132,20 +137,27 @@ public class MainActivity extends BaseActivity implements NavigationView.OnNavig
 //        mBindNeteaseView = mHeaderView.findViewById(R.id.nav_sync_netease);
         mBindNeteaseView = mHeaderView.findViewById(R.id.heard_netease);
         mShowBindIv = mHeaderView.findViewById(R.id.show_sync_iv);
-//        mShowBindIv.setOnClickListener(v -> {
-//            mNavigationView.getMenu().findItem(R.id.nav_bind_wy).setVisible(!mNavigationView.getMenu().findItem(R.id.nav_bind_wy).isVisible());
-//            if (mNavigationView.getMenu().findItem(R.id.nav_bind_wy).isVisible()) {
-//                mShowBindIv.setImageResource(R.drawable.ic_arrow_drop_up);
-//            } else {
-//                mShowBindIv.setImageResource(R.drawable.ic_arrow_drop_down);
-//            }
-//        });
+        mShowBindIv.setOnClickListener(v -> {
+            if (mNavigationView.getMenu().findItem(R.id.nav_bind_wy).isVisible()) {
+                mShowBindIv.setImageResource(R.drawable.ic_arrow_drop_up);
+                FloatVideoWindowManager.INSTANCE.createFloatPlayerWindow(this, mImageView, true);
+            } else {
+                mShowBindIv.setImageResource(R.drawable.ic_arrow_drop_down);
+                FloatVideoWindowManager.INSTANCE.removeFloatView(this);
+            }
+        });
 
     }
 
-    private void checkBindStatus(Boolean isInit) {
+    /**
+     * 检查是否绑定网易云音乐
+     *
+     * @param isInit
+     */
+    private void checkBindNeteaseStatus(Boolean isInit) {
         UIUtilsKt.getNeteaseLoginStatus(user -> {
             ToastUtils.show("已绑定网易云音乐");
+            LogUtil.d(TAG, "success " + user.getId());
             if (isInit) {
                 mNavigationView.getMenu().findItem(R.id.nav_bind_wy).setTitle("已绑定网易云音乐(" + user.getName() + ")");
                 CoverLoader.INSTANCE.loadDrawable(this, user.getAvatar(), drawable -> {
@@ -153,8 +165,19 @@ public class MainActivity extends BaseActivity implements NavigationView.OnNavig
                     return null;
                 });
             }
+//            else {
+            //注销网易云音乐账号，不会实时生效
+//                UIUtilsKt.showInfoDialog(this, getString(R.string.app_name), getString(R.string.logout_netease_prompt), () -> {
+//                    logoutNetease(() -> {
+//                        return null;
+//                    });
+//                    return null;
+//                });
+//            }
             return null;
+
         }, () -> {
+            LogUtil.d(TAG, "fail ");
             if (!isInit) {
                 Intent intent = new Intent(MainActivity.this, BindLoginActivity.class);
                 startActivityForResult(intent, Constants.REQUEST_CODE_LOGIN);
@@ -167,13 +190,28 @@ public class MainActivity extends BaseActivity implements NavigationView.OnNavig
     @Override
     protected void initData() {
         String from = getIntent().getAction();
-//        if (from != null && from.equals(Constants.DEAULT_NOTIFICATION)) {
-//            mSlidingUpPaneLayout.setPanelHeight(getResources().getDimensionPixelOffset(R.dimen.dp_56));
-//            mSlidingUpPaneLayout.setPanelState(PanelState.COLLAPSED);
-//        }
         updatePlaySongInfo(PlayManager.getPlayingMusic());
         //加载主fragment
-        navigateLibrary.run();
+        initShortCutsIntent();
+    }
+
+    /**
+     * 初始shortCuts点击事件
+     */
+    private void initShortCutsIntent() {
+        String action = getIntent().getAction();
+        if (action != null) {
+            LogUtil.d(TAG, "收到 启动ACTION  " + action);
+            if (action.contains("ACTION_SEARCH")) {
+                Intent intent = new Intent(this, SearchActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+                startActivity(intent);
+            } else if (action.contains("ACTION_LOCAL")) {
+            } else if (action.contains("ACTION_HISTORY")) {
+            } else {
+                navigateLibrary.run();
+            }
+        }
     }
 
     @Override
@@ -219,13 +257,10 @@ public class MainActivity extends BaseActivity implements NavigationView.OnNavig
         switch (item.getItemId()) {
             case R.id.nav_login_status:
                 if (mIsLogin) {
-                    new MaterialDialog.Builder(this)
-                            .title(R.string.app_name)
-                            .content(R.string.logout_prompt)
-                            .positiveText(android.R.string.yes)
-                            .onPositive((materialDialog, dialogAction) -> {
-                                logout();
-                            }).negativeText(android.R.string.cancel).show();
+                    UIUtilsKt.showInfoDialog(this, getString(R.string.app_name), getString(R.string.logout_prompt), () -> {
+                        logout();
+                        return null;
+                    });
                 } else {
                     mTargetClass = LoginActivity.class;
                 }
@@ -235,7 +270,7 @@ public class MainActivity extends BaseActivity implements NavigationView.OnNavig
                 NavigationHelper.INSTANCE.navigatePlayQueue(this);
                 break;
             case R.id.nav_bind_wy:
-                checkBindStatus(false);
+                checkBindNeteaseStatus(false);
                 break;
             case R.id.nav_menu_import:
                 mTargetClass = ImportPlaylistActivity.class;
@@ -278,20 +313,18 @@ public class MainActivity extends BaseActivity implements NavigationView.OnNavig
         mTargetClass = null;
     }
 
+    /**
+     * 启动界面
+     */
     private Runnable navigateLibrary = () -> {
         Fragment fragment = MainFragment.newInstance();
         FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
         transaction.replace(R.id.fragment_container, fragment).commitAllowingStateLoss();
-
     };
 
     //返回键
     @Override
     public void onBackPressed() {
-//        if (mSlidingUpPaneLayout != null &&
-//                (mSlidingUpPaneLayout.getPanelState() == PanelState.EXPANDED || mSlidingUpPaneLayout.getPanelState() == PanelState.ANCHORED)) {
-//            mSlidingUpPaneLayout.setPanelState(PanelState.COLLAPSED);
-//        } else
         if (mDrawerLayout.isDrawerOpen(GravityCompat.START)) {
             mDrawerLayout.closeDrawers();
         } else if (isNavigatingMain()) {
@@ -392,7 +425,7 @@ public class MainActivity extends BaseActivity implements NavigationView.OnNavig
         } else if (UserStatus.getLoginStatus()) {
             updateUserInfo(new LoginEvent(true, UserStatus.getUserInfo()));
         }
-        checkBindStatus(true);
+        checkBindNeteaseStatus(true);
     }
 
     /**
@@ -447,17 +480,19 @@ public class MainActivity extends BaseActivity implements NavigationView.OnNavig
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         Log.e(TAG, "onNewIntent");
-
+        initData();
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == Constants.REQUEST_CODE_LOGIN) {
+            //绑定网易云音乐成功。刷新UI
             String uid = SPUtils.getAnyByKey(SPUtils.SP_KEY_NETEASE_UID, "");
             if (uid != null && uid.length() > 0) {
-                LogUtil.d(TAG, "uid = " + uid);
+                LogUtil.d(TAG, "绑定成功 uid = " + uid);
 //                mBindNeteaseView.setVisibility(View.GONE);
+                checkBindNeteaseStatus(true);
             }
         }
     }

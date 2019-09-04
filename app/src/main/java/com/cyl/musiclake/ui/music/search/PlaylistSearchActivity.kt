@@ -1,6 +1,6 @@
 package com.cyl.musiclake.ui.music.search
 
-import android.support.v7.widget.LinearLayoutManager
+import androidx.recyclerview.widget.LinearLayoutManager
 import android.text.Editable
 import android.text.TextUtils
 import android.text.TextWatcher
@@ -20,8 +20,8 @@ import com.cyl.musiclake.ui.base.BasePresenter
 import com.cyl.musiclake.ui.music.dialog.BottomDialogFragment
 import com.cyl.musiclake.ui.music.local.adapter.SongAdapter
 import com.cyl.musiclake.utils.Tools
-import kotlinx.android.synthetic.main.acitvity_playlist_search.resultListRcv
-import kotlinx.android.synthetic.main.acitvity_playlist_search.searchToolbarContainer
+import kotlinx.android.synthetic.main.activity_playlist_search.resultListRcv
+import kotlinx.android.synthetic.main.activity_playlist_search.searchToolbarContainer
 import kotlinx.android.synthetic.main.toolbar_search_layout.*
 
 /**
@@ -53,7 +53,7 @@ class PlaylistSearchActivity : BaseActivity<BasePresenter<BaseContract.BaseView>
 
 
     override fun getLayoutResID(): Int {
-        return R.layout.acitvity_playlist_search
+        return R.layout.activity_playlist_search
     }
 
     override fun initView() {
@@ -78,8 +78,8 @@ class PlaylistSearchActivity : BaseActivity<BasePresenter<BaseContract.BaseView>
     override fun initData() {
         mAdapter.setEnableLoadMore(true)
         //初始化列表
-        val layoutManager = LinearLayoutManager(this)
-        layoutManager.orientation = LinearLayoutManager.VERTICAL
+        val layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this)
+        layoutManager.orientation = androidx.recyclerview.widget.LinearLayoutManager.VERTICAL
         resultListRcv.layoutManager = layoutManager
         resultListRcv.adapter = mAdapter
         mAdapter.bindToRecyclerView(resultListRcv)
@@ -125,8 +125,8 @@ class PlaylistSearchActivity : BaseActivity<BasePresenter<BaseContract.BaseView>
 
         mAdapter.setOnItemClickListener { _, view, position ->
             if (musicList.size <= position) return@setOnItemClickListener
-
-            PlayManager.playOnline(musicList[position])
+            //播放歌单内搜索结果队列
+            PlayManager.play(position,searchResults,queryString.hashCode().toString())
             NavigationHelper.navigateToPlaying(this, view.findViewById(R.id.iv_cover))
         }
         mAdapter.setOnItemChildClickListener { _, _, position ->

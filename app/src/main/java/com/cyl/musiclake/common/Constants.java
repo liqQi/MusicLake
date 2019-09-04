@@ -17,6 +17,7 @@ public class Constants {
     public static final String BAIDU = "baidu";
     public static final String NETEASE = "netease";
     public static final String VIDEO = "video";//本地视频
+    public static final String YOUTUBE = "youtube";//YouTube
 
     //特殊歌单类型
     public static final String PLAYLIST_LOVE_ID = "love";
@@ -166,7 +167,9 @@ public class Constants {
      * 网易云音乐接口
      */
     public static final String BASE_NETEASE_URL = "http://musiclake.leanapp.cn";
-    //bugly app_id
+    /**
+     * Bugly app_id
+     */
     public static final String BUG_APP_ID = "fd892b37ea";
 
     /**
@@ -197,4 +200,12 @@ public class Constants {
 
     //    public static final String SOCKET_URL = "http://39.108.214.63:15003";
     public static final String SOCKET_URL = "https://socket.zzsun.cc";
+    public static final String OAUTH_GITHUB = "oauth_github";
+    public static final String OAUTH_QQ = "oauth_qq";
+    public static final String OAUTH_WEIBO = "oauth_weibo";
+    public static final String GITHUB_BASE_URL = "https://github.com";
+    public static final String GITHUB_REDIRECT_URI = "musiclake://oauth";
+    public static final String GITHUB_CLIENT_ID = "05baa9742e6a72d662a6";
+    public static final String GITHUB_CLIENT_SECRET = "776c29a9eb0822505829483a1dfcd19812ac622f";
+    public static final String GOOGLE_DEVELOPER_KEY = "AIzaSyCVdXoMhAPa1UdAyxKUK5Xp-uxWG612OEg";
 }

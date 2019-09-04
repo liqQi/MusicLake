@@ -7,8 +7,8 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import android.support.annotation.RequiresApi
-import android.support.v4.app.NotificationCompat
+import androidx.annotation.RequiresApi
+import androidx.core.app.NotificationCompat
 import com.cyl.musiclake.MusicApp
 import com.cyl.musiclake.R
 
@@ -56,10 +56,16 @@ class UnLockNotify {
         mNotificationManager.notify(UNLOCK_NOTIFICATION_ID, notification)
     }
 
+    /**
+     * 取消通知
+     */
     fun cancel() {
         mNotificationManager.cancel(UNLOCK_NOTIFICATION_ID)
     }
 
+    /**
+     * 发送歌词解锁广播
+     */
     private fun buildPendingIntent(): PendingIntent {
         val intent = Intent(MusicPlayerService.SERVICE_CMD)
         intent.putExtra(MusicPlayerService.CMD_NAME, MusicPlayerService.UNLOCK_DESKTOP_LYRIC)

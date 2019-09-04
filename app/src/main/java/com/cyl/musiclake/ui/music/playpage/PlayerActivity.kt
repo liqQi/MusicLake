@@ -2,8 +2,8 @@ package com.cyl.musiclake.ui.music.playpage
 
 import android.graphics.Bitmap
 import android.graphics.drawable.Drawable
-import android.support.v4.app.Fragment
-import android.support.v4.view.ViewPager
+import androidx.fragment.app.Fragment
+import androidx.viewpager.widget.ViewPager
 import android.view.View
 import android.view.animation.Animation
 import android.view.animation.TranslateAnimation
@@ -47,7 +47,7 @@ class PlayerActivity : BaseActivity<PlayPresenter>(), PlayContract.View {
     private var playingMusic: Music? = null
     private var coverFragment: CoverFragment? = null
     private var lyricFragment: LyricFragment? = null
-    private val fragments = mutableListOf<Fragment>()
+    private val fragments = mutableListOf<androidx.fragment.app.Fragment>()
 
     /***
      * 显示当前正在播放
@@ -273,7 +273,7 @@ class PlayerActivity : BaseActivity<PlayPresenter>(), PlayContract.View {
         viewPager.setPageTransformer(false, DepthPageTransformer())
         viewPager.offscreenPageLimit = 2
         viewPager.currentItem = 0
-        viewPager.addOnPageChangeListener(object : ViewPager.OnPageChangeListener {
+        viewPager.addOnPageChangeListener(object : androidx.viewpager.widget.ViewPager.OnPageChangeListener {
             override fun onPageScrolled(position: Int, positionOffset: Float, positionOffsetPixels: Int) {}
 
             override fun onPageSelected(position: Int) {
@@ -282,9 +282,13 @@ class PlayerActivity : BaseActivity<PlayPresenter>(), PlayContract.View {
                     searchLyricIv.visibility = View.GONE
                     operateSongIv.visibility = View.VISIBLE
                     lyricFragment?.lyricTv?.setIndicatorShow(false)
+                    rightTv.isChecked = false
+                    leftTv.isChecked = true
                 } else {
                     searchLyricIv.visibility = View.VISIBLE
                     operateSongIv.visibility = View.GONE
+                    leftTv.isChecked = false
+                    rightTv.isChecked = true
                 }
             }
 
@@ -317,6 +321,7 @@ class PlayerActivity : BaseActivity<PlayPresenter>(), PlayContract.View {
     fun updatePlayStatus(event: StatusChangedEvent) {
         playPauseIv.setLoading(!event.isPrepared)
         updatePlayStatus(event.isPlaying)
+        progressSb?.secondaryProgress = event.percent.toInt()
     }
 
     override fun onBackPressed() {

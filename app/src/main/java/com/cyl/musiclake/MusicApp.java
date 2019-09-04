@@ -6,8 +6,9 @@ import android.app.Application;
 import android.content.Context;
 import android.graphics.Point;
 import android.os.Bundle;
-import android.support.multidex.MultiDex;
 import android.view.WindowManager;
+
+import androidx.multidex.MultiDex;
 
 import com.cyl.musicapi.BaseApiImpl;
 import com.cyl.musiclake.bean.HotSearchBean;
@@ -17,21 +18,24 @@ import com.cyl.musiclake.di.component.ApplicationComponent;
 import com.cyl.musiclake.di.component.DaggerApplicationComponent;
 import com.cyl.musiclake.di.module.ApplicationModule;
 import com.cyl.musiclake.player.PlayManager;
+import com.cyl.musiclake.player.cache.CacheFileNameGenerator;
 import com.cyl.musiclake.socket.SocketManager;
 import com.cyl.musiclake.ui.download.TasksManager;
 import com.cyl.musiclake.ui.theme.ThemeStore;
+import com.cyl.musiclake.utils.FileUtils;
 import com.cyl.musiclake.utils.LogUtil;
+import com.danikula.videocache.HttpProxyCacheServer;
 import com.google.gson.Gson;
 import com.liulishuo.filedownloader.FileDownloader;
 import com.liulishuo.filedownloader.util.FileDownloadLog;
 import com.sina.weibo.sdk.WbSdk;
 import com.sina.weibo.sdk.auth.AuthInfo;
 import com.tencent.bugly.Bugly;
-import com.tencent.bugly.beta.Beta;
 import com.tencent.tauth.Tencent;
 
 import org.litepal.LitePal;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -82,7 +86,6 @@ public class MusicApp extends Application {
         mContext = this;
         initApplicationComponent();
         LitePal.initialize(this);
-        mTencent = Tencent.createInstance(Constants.APP_ID, this);
         initBugly();
         initLogin();
         initDB();
@@ -101,7 +104,7 @@ public class MusicApp extends Application {
         //创建微博实例
         WbSdk.install(this, new AuthInfo(this, Constants.APP_KEY, Constants.REDIRECT_URL, Constants.SCOPE));
         //腾讯
-        mTencent = Tencent.createInstance(Constants.APP_ID, MusicApp.getAppContext());
+        mTencent = Tencent.createInstance(Constants.APP_ID, this);
         //初始化socket
         socketManager = new SocketManager();
         socketManager.initSocket();
@@ -111,7 +114,7 @@ public class MusicApp extends Application {
      * 初始化文件下载
      */
     private void initFileDownload() {
-        FileDownloadLog.NEED_LOG = true;
+        FileDownloadLog.NEED_LOG = BuildConfig.DEBUG;
         FileDownloader.setup(this);
     }
 
@@ -119,8 +122,7 @@ public class MusicApp extends Application {
      * 初始化bugly
      */
     private void initBugly() {
-        Bugly.init(getApplicationContext(), Constants.BUG_APP_ID, true);
-        Beta.checkUpgrade(false, false);
+        Bugly.init(getApplicationContext(), Constants.BUG_APP_ID, BuildConfig.DEBUG);
     }
 
 
@@ -134,9 +136,12 @@ public class MusicApp extends Application {
     }
 
     private void initDB() {
-        PlaylistLoader.INSTANCE.createDefaultPlaylist(Constants.PLAYLIST_QUEUE_ID, getString(R.string.playlist_queue));
-        PlaylistLoader.INSTANCE.createDefaultPlaylist(Constants.PLAYLIST_HISTORY_ID, getString(R.string.item_history));
-        PlaylistLoader.INSTANCE.createDefaultPlaylist(Constants.PLAYLIST_LOVE_ID, getString(R.string.item_favorite));
+        //线程初始化数据库，优化启动速度
+        new Thread(() -> {
+            PlaylistLoader.INSTANCE.createDefaultPlaylist(Constants.PLAYLIST_QUEUE_ID, getString(R.string.playlist_queue));
+            PlaylistLoader.INSTANCE.createDefaultPlaylist(Constants.PLAYLIST_HISTORY_ID, getString(R.string.item_history));
+            PlaylistLoader.INSTANCE.createDefaultPlaylist(Constants.PLAYLIST_LOVE_ID, getString(R.string.item_favorite));
+        }).run();
     }
 
     public ApplicationComponent getApplicationComponent() {
@@ -216,6 +221,23 @@ public class MusicApp extends Application {
     protected void attachBaseContext(Context base) {
         super.attachBaseContext(base);
         MultiDex.install(this);
+    }
+
+
+    /**
+     * AndroidVideoCache缓存设置
+     */
+    private HttpProxyCacheServer proxy;
+
+    public static HttpProxyCacheServer getProxy() {
+        return MusicApp.getInstance().proxy == null ? (MusicApp.getInstance().proxy = MusicApp.getInstance().newProxy()) : MusicApp.getInstance().proxy;
+    }
+
+    private HttpProxyCacheServer newProxy() {
+        return new HttpProxyCacheServer.Builder(this)
+                .cacheDirectory(new File(FileUtils.getMusicCacheDir()))
+                .fileNameGenerator(new CacheFileNameGenerator())
+                .build();
     }
 
 }
