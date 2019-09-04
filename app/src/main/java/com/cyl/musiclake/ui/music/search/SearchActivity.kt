@@ -1,8 +1,6 @@
 package com.cyl.musiclake.ui.music.search
 
-import androidx.recyclerview.widget.LinearLayoutManager
 import android.preference.PreferenceManager
-import android.support.v7.widget.LinearLayoutManager
 import android.text.Editable
 import android.text.TextUtils
 import android.text.TextWatcher
@@ -12,17 +10,22 @@ import android.view.MenuItem
 import android.view.View
 import android.view.animation.DecelerateInterpolator
 import android.view.inputmethod.EditorInfo
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.chad.library.adapter.base.BaseQuickAdapter
 import com.cyl.musiclake.R
 import com.cyl.musiclake.bean.HotSearchBean
 import com.cyl.musiclake.bean.Music
 import com.cyl.musiclake.bean.SearchHistoryBean
 import com.cyl.musiclake.bean.data.db.DaoLitepal
+import com.cyl.musiclake.common.Constants
 import com.cyl.musiclake.common.Extras
+import com.cyl.musiclake.common.NavigationHelper
+import com.cyl.musiclake.player.PlayManager
 import com.cyl.musiclake.ui.base.BaseActivity
-import com.cyl.musiclake.ui.main.PageAdapter
-import com.cyl.musiclake.ui.music.search.fragment.SearchSongsFragment
-import com.cyl.musiclake.ui.music.search.fragment.YoutubeSearchFragment
+import com.cyl.musiclake.ui.music.dialog.BottomDialogFragment
+import com.cyl.musiclake.ui.music.local.adapter.SongAdapter
 import com.cyl.musiclake.utils.AnimationUtils
+import com.cyl.musiclake.utils.LogUtil
 import com.cyl.musiclake.utils.Tools
 import com.google.android.flexbox.FlexDirection
 import com.google.android.flexbox.FlexboxLayoutManager
@@ -82,7 +85,7 @@ class SearchActivity : BaseActivity<SearchPresenter>(), SearchContract.View {
 
 
     override fun getLayoutResID(): Int {
-        return R.layout.acitvity_search
+        return R.layout.activity_search
     }
 
     override fun initView() {
